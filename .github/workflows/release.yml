@@ -1,0 +1,41 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - rollup.config.js
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(sed -n 's/^\/\/ @version\s*//p' src/enhanced/meta.txt)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/Zhihu-Enhanced.user.js,dist/Zhihu-Beautification.user.js"
+          tag: "v${{ steps.version.outputs.version }}"
+          name: "v${{ steps.version.outputs.version }}"
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true
+          omitBody: true
